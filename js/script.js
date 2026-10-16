@@ -17,11 +17,10 @@ function secondsToMinutesSeconds(seconds) {
     return `${formattedMinutes}:${formattedSeconds}`;
 }
 
-
 async function getSongs(folder) {
     currFolder = folder;
 
-
+    // songs.json file se data download karein
     let a = await fetch(`./${folder}/songs.json`);
     songs = await a.json();
 
@@ -29,10 +28,17 @@ async function getSongs(folder) {
     let songUL = document.querySelector(".songList").getElementsByTagName("ul")[0];
     songUL.innerHTML = "";
     for (const song of songs) {
+
+        let cleanName = decodeURIComponent(song)
+            .replaceAll("%20", " ")
+            .replaceAll("_", " ")
+            .replaceAll(".mp3", "")
+            .split("(")[0]; // KoshalWorld tags cleaning
+
         songUL.innerHTML = songUL.innerHTML + `<li><img class="invert" width="34" src="img/music.svg" alt="">
                             <div class="info">
-                                <div> ${song.replaceAll("%20", " ").replaceAll(".mp3", "")}</div>
-                                <div>Harry</div>
+                                <div> ${cleanName}</div>
+                                <div>Artist</div>
                             </div>
                             <div class="playnow">
                                 <span>Play Now</span>
@@ -41,12 +47,9 @@ async function getSongs(folder) {
     }
 
     // Attach an event listener to each song
-    Array.from(document.querySelector(".songList").getElementsByTagName("li")).forEach(e => {
+    Array.from(document.querySelector(".songList").getElementsByTagName("li")).forEach((e, index) => {
         e.addEventListener("click", element => {
-            let clickedSongName = e.querySelector(".info").firstElementChild.innerHTML.trim();
-            // URL mapping exact track extension (.mp3 ya .mp3.mp3) ke sath match karne ke liye loop logic
-            let actualSong = songs.find(s => decodeURIComponent(s).includes(clickedSongName)) || songs[0];
-            playMusic(actualSong);
+            playMusic(songs[index]);
         });
     });
 
@@ -59,16 +62,17 @@ const playMusic = (track, pause = false) => {
         currentSong.play();
         play.src = "img/pause.svg";
     }
-    document.querySelector(".songinfo").innerHTML = decodeURI(track).replaceAll(".mp3", "");
+    // Clean track info panel presentation
+    let cleanTrackText = decodeURIComponent(track).replaceAll(".mp3", "").replaceAll("_", " ").split("(")[0];
+    document.querySelector(".songinfo").innerHTML = cleanTrackText;
     document.querySelector(".songtime").innerHTML = "00:00 / 00:00";
 }
-
 async function displayAlbums() {
     console.log("displaying albums")
     let cardContainer = document.querySelector(".cardContainer")
     cardContainer.innerHTML = ""
 
-    let targetFolders = ["darkmood", "ncs", "chillmood", "diljit", "honeysinghspecial", "funkymood", "lovemood", "upliftingmood", "karanaujla", "cs"];
+    let targetFolders = ["honeysinghspecial", "karanaujla", "lovemood", "ncs", "upliftingmood", "css", "chillmood", "darkmood", "diljit", "funkymood"];
 
     for (let index = 0; index < targetFolders.length; index++) {
         const folder = targetFolders[index];
@@ -78,7 +82,7 @@ async function displayAlbums() {
             cardContainer.innerHTML = cardContainer.innerHTML + ` <div data-folder="${folder}" class="card">
             <div class="play">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
+                    xmlns="http://w3.org">
                     <path d="M5 20V4L19 12L5 20Z" stroke="#141B34" fill="#000" stroke-width="1.5"
                         stroke-linejoin="round" />
                 </svg>
@@ -88,7 +92,7 @@ async function displayAlbums() {
             <p>${response.description}</p>
         </div>`;
         } catch (error) {
-            console.log("Album load warning (Check targetFolders string configuration):", folder);
+            console.log("Album warning inside target folders mapping logic:", folder);
         }
     }
 
@@ -104,7 +108,7 @@ async function displayAlbums() {
 
 async function main() {
 
-    await getSongs("songs/darkmood");
+    await getSongs("songs/honeysinghspecial");
     playMusic(songs[0], true);
 
     // Display all the albums on the page
@@ -148,8 +152,8 @@ async function main() {
     // Add an event listener to previous
     previous.addEventListener("click", () => {
         currentSong.pause()
-        console.log("Previous clicked")
-        let index = songs.indexOf(currentSong.src.split("/").slice(-1)[0])
+        let currentTrackName = currentSong.src.split("/").slice(-1)[0];
+        let index = songs.indexOf(decodeURIComponent(currentTrackName));
         if ((index - 1) >= 0) {
             playMusic(songs[index - 1])
         }
@@ -158,8 +162,8 @@ async function main() {
     // Add an event listener to next
     next.addEventListener("click", () => {
         currentSong.pause()
-        console.log("Next clicked")
-        let index = songs.indexOf(currentSong.src.split("/").slice(-1)[0])
+        let currentTrackName = currentSong.src.split("/").slice(-1)[0];
+        let index = songs.indexOf(decodeURIComponent(currentTrackName));
         if ((index + 1) < songs.length) {
             playMusic(songs[index + 1])
         }
@@ -167,7 +171,6 @@ async function main() {
 
     // Add an event to volume
     document.querySelector(".range").getElementsByTagName("input")[0].addEventListener("change", (e) => {
-        console.log("Setting volume to", e.target.value, "/ 100")
         currentSong.volume = parseInt(e.target.value) / 100
         if (currentSong.volume > 0) {
             document.querySelector(".volume>img").src = document.querySelector(".volume>img").src.replace("mute.svg", "volume.svg")
@@ -190,3 +193,4 @@ async function main() {
 }
 
 main();
+
